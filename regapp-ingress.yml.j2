@@ -3,13 +3,13 @@ kind: Ingress
 
 metadata:
   name: hello-world-ingress
-  namespace: projet-devops
+  namespace: {{ k8s_namespace }}
 
 spec:
   ingressClassName: nginx
 
   rules:
-  - host: hello-world.local
+  - host: {{ ingress_host }}
 
     http:
       paths:
