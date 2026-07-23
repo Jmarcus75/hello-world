@@ -1,0 +1,60 @@
+---
+- name: Déployer sur Kubernetes
+  hosts: localhost
+  connection: local
+
+  vars:
+    app_name: "hello-world"
+    k8s_namespace: "projet-devops"
+    ingress_host: "hello-world.local"
+
+  tasks:
+
+    - name: Créer le namespace
+      kubernetes.core.k8s:
+        state: present
+        kind: Namespace
+        name: "{{ k8s_namespace }}"
+
+
+    - name: Déployer l'application
+      kubernetes.core.k8s:
+        state: present
+        src: /home/ansible/hello-world/regapp-deploy.yml
+        namespace: "{{ k8s_namespace }}"
+
+
+    - name: Déployer le service
+      kubernetes.core.k8s:
+        state: present
+        src: /home/ansible/hello-world/regapp-service.yml
+        namespace: "{{ k8s_namespace }}"
+
+
+    - name: Générer Ingress depuis template
+      ansible.builtin.template:
+        src: /home/ansible/hello-world/regapp-ingress.yml.j2
+        dest: /home/ansible/hello-world/regapp-ingress.yml
+
+
+    - name: Déployer Ingress
+      kubernetes.core.k8s:
+        state: present
+        src: /home/ansible/hello-world/regapp-ingress.yml
+        namespace: "{{ k8s_namespace }}"
+
+
+    - name: Restart deployment pour nouvelle image
+      kubernetes.core.k8s:
+        state: present
+        kind: Deployment
+        name: hello-world-app
+        namespace: "{{ k8s_namespace }}"
+        definition:
+          spec:
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/restartedAt: "{{ lookup('pipe','date -u +%Y-%m-%dT%H:%M:%SZ') }}"
+
+
